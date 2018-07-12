@@ -42,9 +42,8 @@ var (
 	ErrCannotGetYourCreditBudget = errors.New("Cannot get your credits at this moment (-1)")
 )
 
-// Response (all fields)
-type Response struct {
-	// Email
+// EmailResponse when validating emails
+type EmailResponse struct {
 	Address      string `json:"address,omitempty"`      //:"flowerjill@aol.com",
 	Status       string `json:"status,omitempty"`       //:"Valid",
 	SubStatus    string `json:"sub_status,omitempty"`   //:"",
@@ -62,19 +61,24 @@ type Response struct {
 	Zipcode      string `json:"zipcode,omitempty"`      //:"33401",
 	Creationdate string `json:"creationdate,omitempty"` //:null,
 	Processedat  string `json:"processedat,omitempty"`  //:"2017-04-01 02:48:02.592"
-	// Credits
+	// In case of error
+	Error string `json:"error,omitempty"`
+}
+
+// CreditResponse received when checking our balance
+type CreditResponse struct {
 	Credits int `json:"credits,omitempty"` // -1 in case of failure
 	// In case of error
 	Error string `json:"error,omitempty"`
 }
 
 // IsValid checks in a response if an email have been validated
-func (r *Response) IsValid() bool {
+func (r *EmailResponse) IsValid() bool {
 	return strings.ToLower(r.Status) == "valid"
 }
 
 // CreditsAvailable checks if there are credits available
-func (r *Response) CreditsAvailable() (bool, error) {
+func (r *CreditResponse) CreditsAvailable() (bool, error) {
 	if r.Credits == -1 {
 		return false, ErrCannotGetYourCreditBudget
 	}
@@ -86,7 +90,7 @@ func (r *Response) CreditsAvailable() (bool, error) {
 }
 
 // CreditsBalance returns the current balance
-func (r *Response) CreditsBalance() (int, error) {
+func (r *CreditResponse) CreditsBalance() (int, error) {
 	if r.Credits == -1 {
 		return r.Credits, ErrCannotGetYourCreditBudget
 	}
@@ -125,31 +129,56 @@ func NewWith(baseURL, apiKey string, httpClient *http.Client) *Client {
 }
 
 // Validate .
-func (c *Client) Validate(email string) (*Response, error) {
+func (c *Client) Validate(email string) (*EmailResponse, error) {
 	params := map[string]string{"email": email}
-	return c.callService(Validate, params)
+	return c.callValidateService(Validate, params)
 }
 
 // ValidateWithIP .
-func (c *Client) ValidateWithIP(email, ip string) (*Response, error) {
+func (c *Client) ValidateWithIP(email, ip string) (*EmailResponse, error) {
 	params := map[string]string{"email": email, "ipaddress": ip}
-	return c.callService(ValidateWithIP, params)
+	return c.callValidateService(ValidateWithIP, params)
 }
 
 // Credits gets the current credits available
-func (c *Client) Credits() (*Response, error) {
+func (c *Client) Credits() (*CreditResponse, error) {
 	params := map[string]string{}
-	return c.callService(Credits, params)
+	return c.callCreditService(params)
 }
 
-func (c *Client) callService(service ServiceType, params map[string]string) (*Response, error) {
-	servicePath, _ := Endpoints[service]
-
-	request, err := c.buildRequest("GET", servicePath, params, nil)
+func (c *Client) callValidateService(service ServiceType, params map[string]string) (*EmailResponse, error) {
+	request, err := c.buildRequest("GET", Endpoints[service], params, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	body, err := c.callService(request)
+
+	var response EmailResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, err
+}
+
+func (c *Client) callCreditService(params map[string]string) (*CreditResponse, error) {
+	request, err := c.buildRequest("GET", Endpoints[Credits], params, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.callService(request)
+
+	var response CreditResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, err
+}
+
+func (c *Client) callService(request *http.Request) ([]byte, error) {
 	_, body, err := c.doRequest(request)
 	if err != nil {
 		return nil, fmt.Errorf("Error doing request: %s", err.Error())
@@ -159,22 +188,7 @@ func (c *Client) callService(service ServiceType, params map[string]string) (*Re
 		return nil, ErrEmptyResponse
 	}
 
-	r, err := c.parseBody(body)
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing response: %s. Body: %s", err.Error(), string(body))
-	}
-
-	return r, err
-}
-
-func (c *Client) parseBody(body []byte) (*Response, error) {
-	var response Response
-	err := json.Unmarshal(body, &response)
-	if err != nil {
-		return nil, err
-	}
-
-	return &response, nil
+	return body, nil
 }
 
 func (c *Client) buildRequest(method, path string, params map[string]string, body io.Reader) (*http.Request, error) {
