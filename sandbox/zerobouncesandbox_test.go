@@ -44,10 +44,7 @@ func TestSandbox(t *testing.T) {
 	for email, valid := range sandboxEmails {
 		r, err := client.Validate(email)
 		if err == nil {
-			if isValid, err := r.IsValid(); isValid != valid {
-				if err != nil {
-					t.Fatal(err)
-				}
+			if isValid := r.IsValid(); isValid != valid {
 				t.Fatalf("Expected %s to be %v", email, valid)
 			}
 		} else {

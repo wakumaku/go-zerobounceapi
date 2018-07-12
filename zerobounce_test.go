@@ -99,7 +99,7 @@ func TestValidate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if valid, err := r.IsValid(); !valid || err != nil {
+	if valid := r.IsValid(); !valid {
 		t.Errorf("Should be valid: %v, %s", valid, err.Error())
 	}
 }
@@ -119,8 +119,8 @@ func TestValidateWithIP(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if valid, err := r.IsValid(); !valid || err != nil {
-		t.Errorf("Should be valid: %v, %s", valid, err.Error())
+	if valid := r.IsValid(); !valid {
+		t.Errorf("Should be valid: %v", valid)
 	}
 }
 
@@ -139,8 +139,8 @@ func TestValidateAnInvalidEmail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if valid, err := r.IsValid(); valid {
-		t.Errorf("Should be invalid: %v, %s", valid, err.Error())
+	if valid := r.IsValid(); valid {
+		t.Errorf("Should be invalid: %v", valid)
 	}
 }
 
@@ -159,8 +159,8 @@ func TestInvalidAPIkey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if valid, err := r.IsValid(); valid {
-		t.Errorf("Should be invalid: %v, %s", valid, err.Error())
+	if valid := r.IsValid(); valid {
+		t.Errorf("Should be invalid: %v", valid)
 	}
 }
 
