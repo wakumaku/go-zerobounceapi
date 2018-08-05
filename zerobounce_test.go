@@ -77,7 +77,7 @@ func setup() func() {
 	mux = http.NewServeMux()
 	server = httptest.NewServer(mux)
 
-	client = zerobounceapi.NewWith(server.URL, "a_valid_api_key", nil)
+	client = zerobounceapi.NewWithBaseURL(server.URL, "a_valid_api_key", nil)
 
 	return func() {
 		server.Close()
@@ -94,13 +94,13 @@ func TestValidate(t *testing.T) {
 		w.Write([]byte(validResponse))
 	})
 
-	r, err := client.Validate("a_valid@email.com")
+	r, err := client.EmailValidation("a_valid@email.com")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if valid := r.IsValid(); !valid {
-		t.Errorf("Should be valid: %v, %s", valid, err.Error())
+		t.Errorf("Should be valid: %v", valid)
 	}
 }
 
@@ -114,7 +114,7 @@ func TestValidateWithIP(t *testing.T) {
 		w.Write([]byte(validResponse))
 	})
 
-	r, err := client.ValidateWithIP("a_valid@email.com", "127.0.0.1")
+	r, err := client.EmailValidationWithIP("a_valid@email.com", "127.0.0.1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestValidateAnInvalidEmail(t *testing.T) {
 		w.Write([]byte(inValidResponse))
 	})
 
-	r, err := client.Validate("invalid@email.com")
+	r, err := client.EmailValidation("invalid@email.com")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func TestInvalidAPIkey(t *testing.T) {
 		w.Write([]byte(errorResponse))
 	})
 
-	r, err := client.Validate("test@email.com")
+	r, err := client.EmailValidation("test@email.com")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,13 +174,13 @@ func TestCredit(t *testing.T) {
 		w.Write([]byte(validCreditResponse))
 	})
 
-	r, err := client.Credits()
+	r, err := client.CreditBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if available, err := r.CreditsAvailable(); !available {
-		t.Errorf("Should be invalid: %v, %s", available, err.Error())
+	if r.Credits == 0 || r.Credits == -1 {
+		t.Errorf("Should be credits available, result: %v", r.Credits)
 	}
 }
 
@@ -194,13 +194,13 @@ func TestCreditBalance(t *testing.T) {
 		w.Write([]byte(validCreditResponse))
 	})
 
-	r, err := client.Credits()
+	r, err := client.CreditBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if balance, err := r.CreditsBalance(); balance <= 0 {
-		t.Errorf("Should be invalid: %v, %s", balance, err.Error())
+	if r.Credits <= 0 {
+		t.Errorf("Should be greater than zero: %v", r.Credits)
 	}
 }
 
@@ -214,7 +214,7 @@ func TestCreditError(t *testing.T) {
 		w.Write([]byte(inValidCreditResponse))
 	})
 
-	r, err := client.Credits()
+	r, err := client.CreditBalance()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,6 +225,6 @@ func TestCreditError(t *testing.T) {
 	}
 
 	if err != zerobounceapi.ErrCannotGetYourCreditBudget {
-		t.Errorf("Error expected: %s\nReceived: %s", zerobounceapi.ErrCannotGetYourCreditBudget.Error(), err.Error())
+		t.Errorf("Error expected: %s\nReceived: %s", zerobounceapi.ErrCannotGetYourCreditBudget.Error(), err)
 	}
 }

@@ -8,22 +8,23 @@ go get github.com/wakumaku/go-zerobounceapi
 Email validation:
 ```
 client = zerobounceapi.New(apiKey, nil)
-response, err := client.Validate("email@domain.tld")
+response, err := client.EmailValidation("email@domain.tld")
 if err != nil {
     panic(err)
 }
-valid := response.IsValid()
+
+fmt.Println(response.IsValid())
 ```
 
 Get credits:
 ```
 client = zerobounceapi.New(apiKey, nil)
-response, err := client.Credits()
+response, err := client.CreditBalance()
 if err != nil {
     panic(err)
 }
 
-credits, err := response.CreditsBalance()
+fmt.Println(response.Credits)
 ```
 
 Makefile:

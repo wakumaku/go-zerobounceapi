@@ -42,7 +42,7 @@ func TestSandbox(t *testing.T) {
 	client := zerobounceapi.New(os.Getenv("ZB_APIKEY"), nil)
 
 	for email, valid := range sandboxEmails {
-		r, err := client.Validate(email)
+		r, err := client.EmailValidation(email)
 		if err == nil {
 			if isValid := r.IsValid(); isValid != valid {
 				t.Fatalf("Expected %s to be %v", email, valid)
